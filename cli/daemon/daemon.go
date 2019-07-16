@@ -26,7 +26,8 @@ import (
 
 	"github.com/arduino/arduino-cli/cli"
 	"github.com/arduino/arduino-cli/commands/daemon"
-	rpc "github.com/arduino/arduino-cli/rpc/commands"
+	srv_commands "github.com/arduino/arduino-cli/rpc/commands"
+	srv_monitor "github.com/arduino/arduino-cli/rpc/monitor"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )
@@ -60,10 +61,16 @@ func runDaemonCommand(cmd *cobra.Command, args []string) {
 		cli.VersionInfo.VersionString, runtime.GOARCH, runtime.GOOS, runtime.Version(), cli.VersionInfo.Commit, cli.VersionInfo.BuildDate)
 	headers := http.Header{"User-Agent": []string{userAgentValue}}
 
+	// register the commands service
 	coreServer := daemon.ArduinoCoreServerImpl{DownloaderHeaders: headers}
-	rpc.RegisterArduinoCoreServer(s, &coreServer)
+	srv_commands.RegisterArduinoCoreServer(s, &coreServer)
+
+	// register the monitors service
+	srv_monitor.RegisterMonitorServer(s, &daemon.MonitorService{})
+
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+
 	fmt.Println("Done serving")
 }
